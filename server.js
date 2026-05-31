@@ -99,6 +99,52 @@ function retrieve(idea, ideas) {
     .slice(0, 6);
 }
 
+function extractOpenAIText(payload) {
+  if (payload.output_text) return payload.output_text;
+  return (payload.output || [])
+    .flatMap((item) => item.content || [])
+    .map((content) => content.text || "")
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function callOpenAI(prompt) {
+  if (!process.env.OPENAI_API_KEY) return null;
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAITPM_CODEX_MODEL || "gpt-5.2",
+      input: prompt
+    })
+  });
+  if (!response.ok) throw new Error(`OpenAI lane failed: ${response.status} ${await response.text()}`);
+  return extractOpenAIText(await response.json());
+}
+
+async function callAnthropic(prompt) {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAITPM_CLAUDE_MODEL || "claude-sonnet-4-5",
+      max_tokens: 1200,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  if (!response.ok) throw new Error(`Anthropic lane failed: ${response.status} ${await response.text()}`);
+  const payload = await response.json();
+  return (payload.content || []).map((item) => item.text || "").filter(Boolean).join("\n");
+}
+
 function ideaSignals(idea, repoSource) {
   const lower = `${idea} ${repoSource || ""}`.toLowerCase();
   const signals = [];
@@ -111,15 +157,40 @@ function ideaSignals(idea, repoSource) {
   return signals.length ? signals : ["idea capture", "prototype", "operator workflow"];
 }
 
-function buildArenaResult(idea, repoSource, retrieved, loops) {
+function parseLaneText(text) {
+  return String(text || "")
+    .split(/\n{2,}/)
+    .map((section, index) => {
+      const [first, ...rest] = section.trim().split("\n");
+      return [first?.replace(/^#+\s*/, "") || `Pass ${index + 1}`, rest.join(" ").trim() || section.trim()];
+    })
+    .filter(([, body]) => body)
+    .slice(0, 4);
+}
+
+async function buildArenaResult(idea, repoSource, retrieved, loops) {
   const signals = ideaSignals(idea, repoSource);
   const confidence = Math.min(96, 54 + retrieved.length * 6 + loops * 4);
+  const context = retrieved.map((item) => `- ${item.title}: ${item.idea}`).join("\n") || "- No related ideas yet.";
+  const basePrompt = [
+    "You are one lane in AITPM's idea-to-webpage arena.",
+    "Return 3-4 short sections. Each section starts with a plain title line followed by practical implementation detail.",
+    `Idea: ${idea}`,
+    `Repo/check-in source: ${repoSource || "none"}`,
+    `Retrieved context:\n${context}`,
+    `Signals: ${signals.join(", ")}`
+  ].join("\n\n");
+  const [openAIText, anthropicText] = await Promise.all([
+    callOpenAI(`${basePrompt}\n\nLane: Codex/code builder. Focus on concrete implementation and deployment.`),
+    callAnthropic(`${basePrompt}\n\nLane: Claude/code critic. Focus on risks, clarity, and product judgment.`)
+  ]);
   return {
     confidence,
     signals,
     codex: {
       score: Math.min(99, confidence + 2),
-      blocks: [
+      provider: openAIText ? "openai" : "local",
+      blocks: openAIText ? parseLaneText(openAIText) : [
         ["Route", `Create /idea/${slugify(idea)} as the canonical page for this idea text on aitpm.com/openaitpm.com.`],
         ["Build", "Generate a working web page, save the source idea, and keep each loop attached to the same artifact."],
         ["RAG", `Retrieve ${retrieved.length} related idea/check-in records and use them as constraints before generating the next page.`],
@@ -128,7 +199,8 @@ function buildArenaResult(idea, repoSource, retrieved, loops) {
     },
     claude: {
       score: confidence,
-      blocks: [
+      provider: anthropicText ? "anthropic" : "local",
+      blocks: anthropicText ? parseLaneText(anthropicText) : [
         ["Arena Critique", "Score the idea for clarity, speed, customer value, and operational risk before promoting it."],
         ["User Flow", "Text comes in, becomes an idea object, retrieves related memory, generates competing plans, then publishes a page."],
         ["Memory Fit", retrieved.length ? `Use nearby context from: ${retrieved.map((item) => item.title).join(", ")}.` : "No close saved memory yet, so this run becomes the seed document."],
@@ -174,7 +246,7 @@ async function handleApi(req, res, url) {
     const existing = ideas.find((item) => item.slug === slug);
     const loops = Number(payload.loops || existing?.loops || 0) + 1;
     const related = retrieve(ideaText, ideas.filter((item) => item.slug !== slug));
-    const result = buildArenaResult(ideaText, repoSource, related, loops);
+    const result = await buildArenaResult(ideaText, repoSource, related, loops);
     const now = new Date().toISOString();
     const item = {
       id: existing?.id || randomUUID(),
