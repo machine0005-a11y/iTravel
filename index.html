@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenAITPM Idea Arena</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="command-panel" aria-label="Idea command center">
+        <div class="brand-row">
+          <div>
+            <p class="eyebrow">openaitpm.com</p>
+            <h1>Idea Arena</h1>
+          </div>
+          <div class="status-pill" id="routeStatus">/idea/new</div>
+        </div>
+
+        <form id="ideaForm" class="prompt-box">
+          <label for="ideaInput">Text the rough idea</label>
+          <textarea
+            id="ideaInput"
+            name="idea"
+            rows="5"
+            placeholder="Example: build a Viki's Kitchen concierge that turns customer texts into meal, nutrition, and fitness support..."
+          ></textarea>
+          <label for="repoInput">Repo or code check-in source</label>
+          <input
+            id="repoInput"
+            name="repo"
+            placeholder="GitHub repo, local project, PR, commit, or check-in note"
+          />
+          <div class="form-row">
+            <select id="primaryModel" aria-label="Primary model">
+              <option>Codex 5.5</option>
+              <option>Claude Code 4.8</option>
+              <option>GPT-5.4</option>
+            </select>
+            <button type="submit">Run Arena</button>
+          </div>
+        </form>
+
+        <div class="loop-controls" aria-label="Loop controls">
+          <button id="loopButton" type="button">Start Loop</button>
+          <button id="saveButton" type="button">Save Snapshot</button>
+          <button id="clearButton" type="button">Clear</button>
+        </div>
+
+        <section class="memory-panel">
+          <div class="panel-header">
+            <h2>RAG Memory</h2>
+            <span id="memoryCount">0 notes</span>
+          </div>
+          <div id="memoryList" class="memory-list"></div>
+        </section>
+      </section>
+
+      <section class="arena" aria-label="Model arena">
+        <div class="arena-header">
+          <div>
+            <p class="eyebrow">live build loop</p>
+            <h2 id="ideaTitle">New Idea</h2>
+          </div>
+          <div class="scoreboard">
+            <div><span id="loopCount">0</span><small>loops</small></div>
+            <div><span id="ragScore">0</span><small>retrieved</small></div>
+            <div><span id="confidenceScore">0%</span><small>confidence</small></div>
+          </div>
+        </div>
+
+        <div class="lane-grid">
+          <article class="lane">
+            <div class="lane-title">
+              <span>Codex 5.5</span>
+              <strong id="codexScore">Ready</strong>
+            </div>
+            <div id="codexOutput" class="output"></div>
+          </article>
+
+          <article class="lane">
+            <div class="lane-title">
+              <span>Claude Code 4.8</span>
+              <strong id="claudeScore">Ready</strong>
+            </div>
+            <div id="claudeOutput" class="output"></div>
+          </article>
+        </div>
+
+        <section class="winner-panel">
+          <div class="panel-header">
+            <h2>Winning Build</h2>
+            <span id="winnerLabel">waiting</span>
+          </div>
+          <div id="winnerOutput" class="winner-output"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/script.js"></script>
+  </body>
+</html>
