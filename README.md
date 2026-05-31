@@ -58,21 +58,26 @@ This repo includes:
 Required GitHub/Vercel secrets before the workflow can actually publish:
 
 - `VERCEL_TOKEN`
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
 - Vercel project linked to the GitHub repo
 - Domain aliases configured in Vercel for `aitpm.com` and/or `openaitpm.com`
 
 ## Production Hooks Still Needed
 
-Replace the browser simulator with:
+Already wired:
 
-- Real OpenAI/Anthropic model calls for the arena lanes.
+- OpenAI lane through the Responses API when `OPENAI_API_KEY` exists.
+- Anthropic lane through the Messages API when `ANTHROPIC_API_KEY` exists.
+- Local deterministic fallback when either key is missing.
+
+Environment model overrides:
+
+- `OPENAITPM_CODEX_MODEL` defaults to `gpt-5.2`.
+- `OPENAITPM_CLAUDE_MODEL` defaults to `claude-sonnet-4-5`.
+
+Still needed for production-grade RAG:
+
 - Embedding generation for every idea/check-in record.
 - Vector store retrieval by idea id and user id.
 - A durable database instead of local JSON storage.
-
-
-## Previous Repo Note
-
-This repository was previously named iTravel and had this note:
-
-> iTravel = 3D world models + bourdain + social Media
