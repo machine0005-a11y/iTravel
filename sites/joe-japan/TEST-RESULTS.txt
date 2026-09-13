@@ -1,0 +1,17 @@
+OFFLINE BROWSER QA
+PASS: All three room choices render and update the provider request
+PASS: 14 itinerary days render with no JavaScript errors
+PASS: All four city filters produce correct day counts
+PASS: Date arithmetic: 14 local days, 13 nights, hotel moves on Days 6 and 11
+PASS: Form content remains plain text in provider request
+PASS: Clipboard-unavailable fallback selects request for manual copy
+PASS: Unavailable local storage handled without breaking the planner
+PASS: ICS export: 14 tentative events, correct exclusive end dates, folded UTF-8 lines
+PASS: Local preview is never falsely presented as a public URL
+PASS: Flagged hotel-maintenance overlap warning appears
+PASS: Clear resets all form fields and checklist
+PASS: All internal links target existing sections
+PASS: No horizontal overflow at 375, 390, 768, and 1440 pixels
+PASS: External scripts and styles are present; CSP permits same-origin assets only
+
+Limitations: Network navigation is blocked by this runtime. Actual secure-origin clipboard, native share, real local-storage persistence across browser reloads, deployed response headers, and supplier availability were not verified. No live Cloudflare deployment has occurred.

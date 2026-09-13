@@ -1,0 +1,14 @@
+{
+  "name": "joe-japan-trip",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Japan journey for Joe and his wife. Static site, no payment collection.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "check": "node --check public/site.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
